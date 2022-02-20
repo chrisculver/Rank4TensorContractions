@@ -42,7 +42,7 @@ void single_index_contract(std::complex<double> *res, std::complex<double> *bpro
               _alpha, d_A, dim*dim*dim, 
                      d_B, dim, 
               _beta, d_C, dim*dim*dim);
-  gpu_timer.print<std::chrono::microseconds>("us");
+  gpu_timer.stop<std::chrono::microseconds>("us");
  
   cudaMemcpy(res, d_C, resTensor_size, cudaMemcpyDeviceToHost);
 
@@ -91,7 +91,7 @@ void all_index_contract(std::complex<double> *res, std::complex<double> *bpropMa
   //d_res[0] = make_cuDoubleComplex(0.,0.);
   cudaMemcpy(d_A, bpropMat, bTensor_size, cudaMemcpyHostToDevice);
   cudaMemcpy(d_B, bsinkMat, bTensor_size, cudaMemcpyHostToDevice);
-  setup_timer.print<std::chrono::microseconds>("us");
+  setup_timer.stop<std::chrono::microseconds>("us");
 
   Timer<> gpu_timer("Zgemm time all");
   cublasZgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 
@@ -101,12 +101,12 @@ void all_index_contract(std::complex<double> *res, std::complex<double> *bpropMa
                      d_B, dim, 
               _beta, d_C, dim*dim*dim);
   cudaDeviceSynchronize();
-  gpu_timer.print<std::chrono::microseconds>("us");
+  gpu_timer.stop<std::chrono::microseconds>("us");
  
   Timer<> trace_timer("Trace time all");
   trace_rank6<<<1,1>>>(d_res, d_C, dim);
   cudaDeviceSynchronize();
-  trace_timer.print<std::chrono::microseconds>("us");
+  trace_timer.stop<std::chrono::microseconds>("us");
 
   cudaMemcpy(res, d_res, sizeof(std::complex<double>), cudaMemcpyDeviceToHost);
 
@@ -155,12 +155,12 @@ void contract(std::complex<double> *res, std::complex<double> *bpropMat, std::co
   //d_res[0] = make_cuDoubleComplex(0.,0.);
   cudaMemcpy(d_A, bpropMat, bTensor_size, cudaMemcpyHostToDevice);
   cudaMemcpy(d_B, bsinkMat, bTensor_size, cudaMemcpyHostToDevice);
-  setup_timer.print<std::chrono::microseconds>("us");
+  setup_timer.stop<std::chrono::microseconds>("us");
  
   Timer<> contract_timer("contract time");
   contract<<<1,1>>>(d_res, d_A, d_B, dim);
   cudaDeviceSynchronize();
-  contract_timer.print<std::chrono::microseconds>("us");
+  contract_timer.stop<std::chrono::microseconds>("us");
 
   cudaMemcpy(res, d_res, sizeof(std::complex<double>), cudaMemcpyDeviceToHost);
 

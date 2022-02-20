@@ -11,10 +11,11 @@ class Timer
 {
   const typename Clock::time_point start_point;
   const std::string name;
+
   public:
     Timer(std::string n) : 
       start_point(Clock::now()), name(n)
-    {}
+    {std::cout << "TIMER: Started " << name << std::endl;}
         
     template <typename Rep = typename Clock::duration::rep, typename Units = typename Clock::duration>
     Rep elapsed_time() const
@@ -26,9 +27,10 @@ class Timer
     }
     
     template <typename Units = typename Clock::duration>
-    void print(std::string unit) const {
-      std::cout << "TIMER: " << name << " ELAPSED: " << elapsed_time<unsigned int, Units>() << " " << unit << std::endl;
+    void stop(std::string unit) const {
+      std::cout << "TIMER: Finished " << name << " ELAPSED=" << elapsed_time<unsigned int, Units>() << " " << unit << std::endl;
     }
+
 };
 
 #endif

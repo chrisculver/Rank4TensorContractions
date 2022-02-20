@@ -15,6 +15,7 @@ cd compute_two_tensors_gpu(const Tensor4 &tensA, const Tensor4 &tensB);
 cd full_trace_gpu(const Tensor4 &tensA, const Tensor4 &tensB);
 cd full_contract_gpu(const Tensor4 &tensA, const Tensor4 &tensB);
 cd explicit_contract(const Tensor4 &A, const Tensor4 &B);
+cd explicit_contract(const Tensor4 &A, const Tensor4 &B, const Tensor4 &C, const Tensor4 &D);
 
 int main()
 {
@@ -32,29 +33,42 @@ int main()
  
   Timer<> cpu_timer("Brute for CPU contract");
   std::cout << explicit_contract(A,B) << std::endl;
-  cpu_timer.print<std::chrono::microseconds>("us");
+  cpu_timer.stop<std::chrono::microseconds>("us");
   cout << endl;
   Timer<> ecpu_timer("Eigen CPU contract A,B");  
   cd cpu_res = contract_two_tensors(A,B,diagram);
   std::cout << cpu_res << std::endl;
-  ecpu_timer.print<std::chrono::microseconds>("us");
+  ecpu_timer.stop<std::chrono::microseconds>("us");
   
   cout << endl;
   Timer<> gpu_timer("GPU contract one index");
   std::cout << compute_two_tensors_gpu(A,B) << std::endl;
-  gpu_timer.print<std::chrono::microseconds>("us");
+  gpu_timer.stop<std::chrono::microseconds>("us");
 
   cout << endl;
   Timer<> gpu_trace_timer("GPU full trace");
   std::cout << full_trace_gpu(A,B) << std::endl;
-  gpu_trace_timer.print<std::chrono::microseconds>("us");
+  gpu_trace_timer.stop<std::chrono::microseconds>("us");
   
   
   cout << endl;
   Timer<> gpu_c_timer("GPU full contract");
   std::cout << full_contract_gpu(A,B) << std::endl;
-  gpu_c_timer.print<std::chrono::microseconds>("us");
-  
+  gpu_c_timer.stop<std::chrono::microseconds>("us");
+
+
+  cout << endl << endl << "============Contracting 4 rank4  tensors===========" << endl;
+  Timer<> cpu4_timer("Brute force CPU");
+  cout << explicit_contract(A,B,C,D) << endl;
+  cpu4_timer.stop<std::chrono::milliseconds>("ms");
+  cout << endl;
+
+  Timer<> ecpu4_timer("Eigen CPU contract ABCD");
+  cd ecpu_res = contract_four_tensors(A,B,C,D);
+  cout << ecpu_res << endl;
+  ecpu4_timer.stop<std::chrono::microseconds>("us");
+  cout << endl;
+
   return 0;
 }
 
@@ -84,7 +98,7 @@ cd compute_two_tensors_gpu(const Tensor4 &tensA, const Tensor4 &tensB)
   
   Timer<> gpu_timer("GPU single index");
   single_index_contract(GPUres, A, B, dim);
-  gpu_timer.print<std::chrono::microseconds>("us");
+  gpu_timer.stop<std::chrono::microseconds>("us");
 
 
 
@@ -94,7 +108,7 @@ cd compute_two_tensors_gpu(const Tensor4 &tensA, const Tensor4 &tensB)
   for(int k=0; k<dim; ++k)
     res+=GPUres[i*dim*dim*dim*dim*dim + j*dim*dim*dim*dim + k*dim*dim*dim + k*dim*dim + j*dim + i];
   
-  cpu_trace.print<std::chrono::microseconds>("us");
+  cpu_trace.stop<std::chrono::microseconds>("us");
   
   
   
@@ -121,6 +135,42 @@ cd explicit_contract(const Tensor4 &A, const Tensor4 &B)
 
   return res;
 }
+
+
+cd explicit_contract(const Tensor4 &A, const Tensor4 &B, const Tensor4 &C, const Tensor4 &D)
+{
+  long int dim = A.dimensions()[0];
+  cd res(0.,0.);
+ 
+  Tensor4 AB(dim,dim,dim,dim), CD(dim,dim,dim,dim);
+  AB.setZero();
+  CD.setZero();
+
+  for(size_t a=0; a<dim; ++a)
+  for(size_t b=0; b<dim; ++b)
+  for(size_t c=0; c<dim; ++c)
+  for(size_t d=0; d<dim; ++d)
+  {
+    for(size_t i=0; i<dim; ++i)
+    for(size_t j=0; j<dim; ++j)
+    {
+      AB(a,b,c,d)+=A(a,b,i,j)*B(j,i,c,d);
+      CD(a,b,c,d)+=C(a,b,i,j)*D(i,j,c,d);
+    }
+  }
+
+  for(size_t a=0; a<dim; ++a)
+  for(size_t b=0; b<dim; ++b)
+  for(size_t c=0; c<dim; ++c)
+  for(size_t d=0; d<dim; ++d)
+  {
+    res+=AB(a,b,c,d)*CD(d,c,b,a);
+  }
+
+  return res;
+}
+
+
 
 
 cd full_trace_gpu(const Tensor4 &tensA, const Tensor4 &tensB)
