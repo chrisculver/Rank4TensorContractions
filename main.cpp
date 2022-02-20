@@ -14,12 +14,13 @@ using Tensor4 = Eigen::Tensor<std::complex<double>,4>;
 cd compute_two_tensors_gpu(const Tensor4 &tensA, const Tensor4 &tensB);
 cd full_trace_gpu(const Tensor4 &tensA, const Tensor4 &tensB);
 cd full_contract_gpu(const Tensor4 &tensA, const Tensor4 &tensB);
+cd full_contract_gpu4(const Tensor4 &tensA, const Tensor4 &tensB, const Tensor4 &tensC, const Tensor4 &tensD);
 cd explicit_contract(const Tensor4 &A, const Tensor4 &B);
 cd explicit_contract(const Tensor4 &A, const Tensor4 &B, const Tensor4 &C, const Tensor4 &D);
 
 int main()
 {
-  const int N=12;
+  const int N=20;
 
   Tensor4 A(N,N,N,N),B(N,N,N,N),C(N,N,N,N),D(N,N,N,N); 
   A.setRandom();
@@ -58,6 +59,8 @@ int main()
 
 
   cout << endl << endl << "============Contracting 4 rank4  tensors===========" << endl;
+  
+  
   Timer<> cpu4_timer("Brute force CPU");
   cout << explicit_contract(A,B,C,D) << endl;
   cpu4_timer.stop<std::chrono::milliseconds>("ms");
@@ -66,8 +69,14 @@ int main()
   Timer<> ecpu4_timer("Eigen CPU contract ABCD");
   cd ecpu_res = contract_four_tensors(A,B,C,D);
   cout << ecpu_res << endl;
-  ecpu4_timer.stop<std::chrono::microseconds>("us");
+  ecpu4_timer.stop<std::chrono::milliseconds>("ms");
   cout << endl;
+
+
+  Timer<> gpu4_timer("GPU version 1");
+  cout << full_contract_gpu4(A,B,C,D) << endl;
+  gpu4_timer.stop<std::chrono::milliseconds>("ms");
+
 
   return 0;
 }
@@ -236,6 +245,45 @@ cd full_contract_gpu(const Tensor4 &tensA, const Tensor4 &tensB)
   
   delete A;
   delete B;
+  
+  return res;
+}
+
+cd full_contract_gpu4(const Tensor4 &tensA, const Tensor4 &tensB, const Tensor4 &tensC, const Tensor4 &tensD)
+{
+  long int dim = tensA.dimensions()[0];
+  long int tdim = dim*dim*dim*dim;
+
+  cd *A = new cd[tdim];
+  cd *B = new cd[tdim];
+  cd *C = new cd[tdim];
+  cd *D = new cd[tdim];
+  cd res(0.,0.);
+
+
+  for(size_t i=0; i<dim; ++i)
+  for(size_t j=0; j<dim; ++j)
+  for(size_t k=0; k<dim; ++k)
+  for(size_t l=0; l<dim; ++l)
+  {
+    A[i*dim*dim*dim + j*dim*dim + k*dim + l] = tensA(i,j,k,l);
+    B[i*dim*dim*dim + j*dim*dim + k*dim + l] = tensB(i,j,k,l);
+    C[i*dim*dim*dim + j*dim*dim + k*dim + l] = tensC(i,j,k,l);
+    D[i*dim*dim*dim + j*dim*dim + k*dim + l] = tensD(i,j,k,l);
+  }
+
+  std::complex<double> *GPUres = (std::complex<double> *)malloc(((long int)sizeof(std::complex<double>))*(1));
+ 
+  contract4(GPUres, A, B, C, D, dim);
+ 
+  res=GPUres[0];
+
+  free(GPUres);
+  
+  delete A;
+  delete B;
+  delete C;
+  delete D;
   
   return res;
 }

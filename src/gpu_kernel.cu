@@ -173,3 +173,67 @@ void contract(std::complex<double> *res, std::complex<double> *bpropMat, std::co
   cudaStreamSynchronize(0);
   cudaStreamDestroy(stream);
 }
+
+void contract4(std::complex<double> *res, std::complex<double> *A, std::complex<double> *B, std::complex<double> *C, std::complex<double> *D, long int dim)
+{
+  Timer<> setup_timer("setup contract");
+  
+  //cublas setup - taken from examples online
+  cudaError_t cudaStat;
+  cublasStatus_t stat;
+  cublasHandle_t handle;
+  cudaStream_t stream;
+  cudaStreamCreate(&stream);
+  stat = cublasCreate(&handle);
+  cublasSetStream(handle, stream);
+  // cublas multiply can do C=alphaA*B + betaC or something like that
+  std::complex<double> alpha(1.,0.);
+  std::complex<double> beta(0.,0.);
+  cuDoubleComplex *_alpha = reinterpret_cast<cuDoubleComplex*>(&alpha);
+  cuDoubleComplex *_beta = reinterpret_cast<cuDoubleComplex*>(&beta);
+  int block_size = 32;
+  dim3 threads(block_size, block_size);
+  dim3 grid(dim/threads.x, dim/threads.y);
+
+  long int bTensor_size = dim*dim*dim*dim*sizeof(std::complex<double>);
+  long int resTensor_size = dim*dim*dim*dim*dim*dim*sizeof(std::complex<double>);
+
+  cuDoubleComplex *d_A, *d_B, *d_C, *d_D, *d_AB, *d_CD, *d_res;
+  cudaMalloc((void **) &d_A, bTensor_size);
+  cudaMalloc((void **) &d_B, bTensor_size);
+  cudaMalloc((void **) &d_C, bTensor_size);
+  cudaMalloc((void **) &d_D, bTensor_size);
+  cudaMalloc((void **) &d_AB, bTensor_size);
+  cudaMalloc((void **) &d_CD, bTensor_size);
+  cudaMalloc((void **) &d_res, 2*sizeof(std::complex<double>));
+   
+
+  //d_res[0] = make_cuDoubleComplex(0.,0.);
+  cudaMemcpy(d_A, A, bTensor_size, cudaMemcpyHostToDevice);
+  cudaMemcpy(d_B, B, bTensor_size, cudaMemcpyHostToDevice);
+  cudaMemcpy(d_C, C, bTensor_size, cudaMemcpyHostToDevice);
+  cudaMemcpy(d_D, D, bTensor_size, cudaMemcpyHostToDevice);
+  cudaMemset(d_AB, 0, bTensor_size);
+  cudaMemset(d_CD, 0, bTensor_size);
+  cudaMemset(d_AB, 0, bTensor_size);
+  cudaMemset(d_res, 0, 2*sizeof(std::complex<double>));
+  setup_timer.stop<std::chrono::microseconds>("us");
+ 
+  Timer<> contract_timer("contract time");
+  contractAB<<<1,1>>>(d_AB, d_A, d_B, dim);
+  contractCD<<<1,1>>>(d_CD, d_C, d_D, dim);
+  contract<<<1,1>>>(d_res, d_AB, d_CD, dim);
+  cudaDeviceSynchronize();
+  contract_timer.stop<std::chrono::microseconds>("us");
+
+  cudaMemcpy(res, d_res, sizeof(std::complex<double>), cudaMemcpyDeviceToHost);
+
+  cudaFree(d_A);
+  cudaFree(d_B);
+  cudaFree(d_C);
+  cudaFree(d_res);
+  
+  cublasDestroy(handle);
+  cudaStreamSynchronize(0);
+  cudaStreamDestroy(stream);
+}
