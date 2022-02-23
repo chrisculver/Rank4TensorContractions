@@ -1,5 +1,13 @@
 #include "trace.h"
 
+
+__global__ void trace_matrix(cuDoubleComplex *res, cuDoubleComplex *A, int dim)
+{
+  for(int i=0; i<dim; ++i)
+    res[0]=cuCadd(res[0], A[i*dim + i]);
+}
+
+
 __global__ void trace_rank6(cuDoubleComplex *res, cuDoubleComplex *A, int dim)
 {
   int index = threadIdx.x;

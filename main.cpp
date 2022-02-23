@@ -16,6 +16,7 @@ cd full_trace_gpu(const Tensor4 &tensA, const Tensor4 &tensB);
 cd full_contract_gpu(const Tensor4 &tensA, const Tensor4 &tensB);
 cd full_contract_gpu4(const Tensor4 &tensA, const Tensor4 &tensB, const Tensor4 &tensC, const Tensor4 &tensD);
 cd explicit_contract(const Tensor4 &A, const Tensor4 &B);
+cd cuTensor_contract(const Tensor4 &A, const Tensor4 &B);
 cd explicit_contract(const Tensor4 &A, const Tensor4 &B, const Tensor4 &C, const Tensor4 &D);
 
 int main()
@@ -58,6 +59,12 @@ int main()
   gpu_c_timer.stop<std::chrono::microseconds>("us");
 
 
+  cout << endl;
+  Timer<> cuTensor_timer("cuTensor contract");
+  std::cout << cuTensor_contract(A,B) << std::endl;
+  cuTensor_timer.stop<std::chrono::microseconds>("us");
+
+/*
   cout << endl << endl << "============Contracting 4 rank4  tensors===========" << endl;
   
   
@@ -76,7 +83,7 @@ int main()
   Timer<> gpu4_timer("GPU version 1");
   cout << full_contract_gpu4(A,B,C,D) << endl;
   gpu4_timer.stop<std::chrono::milliseconds>("ms");
-
+*/
 
   return 0;
 }
@@ -287,3 +294,37 @@ cd full_contract_gpu4(const Tensor4 &tensA, const Tensor4 &tensB, const Tensor4 
   
   return res;
 }
+
+
+cd cuTensor_contract(const Tensor4 &tensA, const Tensor4 &tensB)
+{
+  long int dim = tensA.dimensions()[0];
+  long int tdim = dim*dim*dim*dim;
+
+  cd *A = new cd[tdim];
+  cd *B = new cd[tdim];
+  cd res(0.,0.);
+
+
+  for(size_t i=0; i<dim; ++i)
+  for(size_t j=0; j<dim; ++j)
+  for(size_t k=0; k<dim; ++k)
+  for(size_t l=0; l<dim; ++l)
+  {
+    A[i*dim*dim*dim + j*dim*dim + k*dim + l] = tensA(l,k,j,i);
+    B[i*dim*dim*dim + j*dim*dim + k*dim + l] = tensB(l,k,j,i);
+  }
+
+  std::complex<double> *GPUres = (std::complex<double> *)malloc(((long int)sizeof(std::complex<double>))*(1));
+
+  cuTensorContract(GPUres, A, B, dim);
+  res=GPUres[0];
+
+  free(GPUres);
+  
+  delete A;
+  delete B;
+  
+  return res;
+}
+

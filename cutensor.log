@@ -1,0 +1,14 @@
+[2022-02-23 07:39:06][cuTENSOR][14115][Api][cutensorInit] handle=0X7FFFFFFF7978
+[2022-02-23 07:39:06][cuTENSOR][14115][Api][cutensorInitTensorDescriptor] handle=0X7FFFFFFF7978 desc=0X7FFFFFFF8978 numModes=4 extent=[20,20,20,20] stride=[] dataType=5 op=1
+[2022-02-23 07:39:06][cuTENSOR][14115][Api][cutensorInitTensorDescriptor] handle=0X7FFFFFFF7978 desc=0X7FFFFFFF8BB8 numModes=4 extent=[20,20,20,20] stride=[] dataType=5 op=1
+[2022-02-23 07:39:06][cuTENSOR][14115][Api][cutensorInitTensorDescriptor] handle=0X7FFFFFFF7978 desc=0X7FFFFFFF8DF8 numModes=2 extent=[20,20] stride=[] dataType=5 op=1
+[2022-02-23 07:39:06][cuTENSOR][14115][Api][cutensorGetAlignmentRequirement] handle=0X7FFFFFFF7978 ptr=0X20009A800000 desc=0X7FFFFFFF8978 alingmentRequirement=0X7FFFFFFF9038
+[2022-02-23 07:39:06][cuTENSOR][14115][Api][cutensorGetAlignmentRequirement] handle=0X7FFFFFFF7978 ptr=0X20009AC00000 desc=0X7FFFFFFF8BB8 alingmentRequirement=0X7FFFFFFF903C
+[2022-02-23 07:39:06][cuTENSOR][14115][Api][cutensorGetAlignmentRequirement] handle=0X7FFFFFFF7978 ptr=0X20009B000000 desc=0X7FFFFFFF8DF8 alingmentRequirement=0X7FFFFFFF9040
+[2022-02-23 07:39:06][cuTENSOR][14115][Api][cutensorInitContractionDescriptor] handle=0X7FFFFFFF7978 desc=0X7FFFFFFF9048 descA=0X7FFFFFFF8978 modeA=[97,106,107,108] alignmentRequirementA=16 descB=0X7FFFFFFF8BB8 modeB=[108,107,106,98] alignmentRequirementB=16 descC=0X7FFFFFFF8DF8 modeC=[97,98] alignmentRequirementC=16 descD=0X7FFFFFFF8DF8 modeD=[97,98] alignmentRequirementD=16 minimumComputeType=16
+[2022-02-23 07:39:06][cuTENSOR][14115][Api][cutensorInitContractionFind] handle=0X7FFFFFFF7978 find=0X7FFFFFFF9948 algo=-1
+[2022-02-23 07:39:06][cuTENSOR][14115][Api][cutensorContractionGetWorkspace] handle=0X7FFFFFFF7978 desc=0X7FFFFFFF9048 find=0X7FFFFFFF9948 pref=2 workspaceSize=140737488329544
+[2022-02-23 07:39:06][cuTENSOR][14115][Api][cutensorInitContractionPlan] handle=0X7FFFFFFF7978 plan=0X7FFFFFFF9B58 desc=0X7FFFFFFF9048 find=0X7FFFFFFF9948 workspaceSize=19337472
+[2022-02-23 07:39:06][cuTENSOR][14115][Api][cutensorContraction] handle=0X7FFFFFFF7978 plan=0X7FFFFFFF9B58 alpha=0X7FFFFFFF7890 A=0X20009A800000 B=0X20009AC00000 beta=0X7FFFFFFF78A0 C=0X20009B000000 D=0X20009B000000 workspace=0X20009E800000 workspaceSize=19337472 stream=0X0 id=0
+[2022-02-23 07:39:06][cuTENSOR][14115][Trace][cutensorContraction] -extent0=20,1=20,2=20,3=20, -modeC0,1,2,3 -strideC1,20,400,8000 -Pcz -modeA0,3,2,1 -strideA1,20,400,8000 -Paz -Relementwise
+
