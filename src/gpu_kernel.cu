@@ -4,6 +4,7 @@
 
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
+#include <cutensor.h>
 
 void single_index_contract(std::complex<double> *res, std::complex<double> *bpropMat, std::complex<double> *bsinkMat, long int dim)
 {
@@ -236,4 +237,17 @@ void contract4(std::complex<double> *res, std::complex<double> *A, std::complex<
   cublasDestroy(handle);
   cudaStreamSynchronize(0);
   cudaStreamDestroy(stream);
+}
+
+
+void cuTensorContract(std::complex<double> *res, std::complex<double> *A,std::complex<double> *B, long int dim)
+{
+  cudaDataType_t tensType = CUDA_C_32F;
+  cutensorComputeType_t computeType = CUTENSOR_COMPUTE_32F;
+
+  typedef float floatTypeCompute;
+
+  floatTypeCompute alpha = (floatTypeCompute)1.0f;
+  floatTypeCompute beta = (floatTypeCompute)0.0f;
+
 }
