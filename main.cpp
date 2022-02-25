@@ -1,5 +1,6 @@
 #include "eigen_contractor.h"
 #include "gpu_kernel.h"
+#include "tensor_kernel.h"
 #include "timer.h"
 
 #include <unsupported/Eigen/CXX11/Tensor>
@@ -68,12 +69,12 @@ int main()
 
   cout << endl << endl << "============Contracting 4 rank4  tensors===========" << endl;
   
-  
+  /*
   Timer<> cpu4_timer("Brute force CPU");
   cout << explicit_contract(A,B,C,D) << endl;
   cpu4_timer.stop<std::chrono::milliseconds>("ms");
   cout << endl;
-
+*/
   Timer<> ecpu4_timer("Eigen CPU contract ABCD");
   cd ecpu_res = contract_four_tensors(A,B,C,D);
   cout << ecpu_res << endl;
@@ -84,6 +85,7 @@ int main()
   Timer<> gpu4_timer("GPU version 1");
   cout << full_contract_gpu4(A,B,C,D) << endl;
   gpu4_timer.stop<std::chrono::milliseconds>("ms");
+  cout << endl;
 
   Timer<> cuTensor4_timer("cuTensor contract ABCD");
   cout << cuTensor_contract_gpu4(A,B,C,D) << endl;
@@ -349,10 +351,10 @@ cd cuTensor_contract_gpu4(const Tensor4 &tensA, const Tensor4 &tensB, const Tens
   for(size_t k=0; k<dim; ++k)
   for(size_t l=0; l<dim; ++l)
   {
-    A[i*dim*dim*dim + j*dim*dim + k*dim + l] = tensA(i,j,k,l);
-    B[i*dim*dim*dim + j*dim*dim + k*dim + l] = tensB(i,j,k,l);
-    C[i*dim*dim*dim + j*dim*dim + k*dim + l] = tensC(i,j,k,l);
-    D[i*dim*dim*dim + j*dim*dim + k*dim + l] = tensD(i,j,k,l);
+    A[i*dim*dim*dim + j*dim*dim + k*dim + l] = tensA(l,k,j,i);
+    B[i*dim*dim*dim + j*dim*dim + k*dim + l] = tensB(l,k,j,i);
+    C[i*dim*dim*dim + j*dim*dim + k*dim + l] = tensC(l,k,j,i);
+    D[i*dim*dim*dim + j*dim*dim + k*dim + l] = tensD(l,k,j,i);
   }
 
   std::complex<double> *GPUres = (std::complex<double> *)malloc(((long int)sizeof(std::complex<double>))*(1));
