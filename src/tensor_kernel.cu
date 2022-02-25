@@ -21,7 +21,16 @@
   } \
 }
 
-/* specialization of CUTensor information for BB->BB scattering */
+/* 
+   specialization of CUTensor information for BB->BB scattering tensors
+   IMPORTANT THINGS
+      *Assume every mode has the same dimensions
+      *Manages GPU memory for the tensor
+      *Computes the cutensor desc 
+      *Computes the cutensor alignment
+
+   You can change which modes of the tensor will be contracted with change_contraction_modes()
+*/
 class CUTensor
 {
   public: 
@@ -59,6 +68,18 @@ class CUTensor
         cudaFree(data);
     }
 
+    void change_contraction_modes(std::vector<int> m)
+    {
+      if( m.size() != modes.size() )
+      {
+        printf("Can't change modes while changing rank of tensor!");
+        exit(-1);
+      }
+      modes=m;
+      // I **think** these need to get called to update the descriptor and alignment
+      init_descriptor();
+      init_alignment();
+    }
 
     void init_descriptor()
     {
