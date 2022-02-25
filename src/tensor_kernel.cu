@@ -276,7 +276,6 @@ void cuTensorContract4(std::complex<double> *res, std::complex<double> *A,std::c
   CUTensor dD(D, handle, dim, modeD);
   CUTensor dAB(nullptr, handle, dim, modeAB);
   CUTensor dCD(nullptr, handle, dim, modeCD);
-  CUTensor dCD2(nullptr, handle, dim, modeCD2);
   CUTensor dMat(nullptr, handle, dim, modeMat);
 
   //create descriptor of contraction
@@ -298,16 +297,6 @@ void cuTensorContract4(std::complex<double> *res, std::complex<double> *A,std::c
     &(dD.desc), dD.modes.data(), dD.alignment,
     &(dCD.desc), dCD.modes.data(), dCD.alignment,
     &(dCD.desc), dCD.modes.data(), dCD.alignment,
-    computeType
-    )
-  );
-  HANDLE_ERROR( cutensorInitContractionDescriptor( 
-    &handle,
-    &CdescMat,
-    &(dAB.desc), dAB.modes.data(), dAB.alignment,
-    &(dCD2.desc), dCD2.modes.data(), dCD2.alignment,
-    &(dMat.desc), dMat.modes.data(), dMat.alignment,
-    &(dMat.desc), dMat.modes.data(), dMat.alignment,
     computeType
     )
   );
@@ -364,14 +353,6 @@ void cuTensorContract4(std::complex<double> *res, std::complex<double> *A,std::c
     worksize
     )
   );
-  HANDLE_ERROR( cutensorInitContractionPlan(
-    &handle,
-    &planMat,
-    &CdescMat,
-    &find,
-    worksize
-    )
-  );
 
   cutensor_setup.stop<std::chrono::microseconds>("us");
   cutensorStatus_t err;
@@ -409,6 +390,29 @@ void cuTensorContract4(std::complex<double> *res, std::complex<double> *A,std::c
 
   
   //TODO try swapping modes of dCD
+ 
+  dCD.change_contraction_modes(modeCD2);
+
+  HANDLE_ERROR( cutensorInitContractionDescriptor( 
+    &handle,
+    &CdescMat,
+    &(dAB.desc), dAB.modes.data(), dAB.alignment,
+    &(dCD.desc), dCD.modes.data(), dCD.alignment,
+    &(dMat.desc), dMat.modes.data(), dMat.alignment,
+    &(dMat.desc), dMat.modes.data(), dMat.alignment,
+    computeType
+    )
+  );
+  HANDLE_ERROR( cutensorInitContractionPlan(
+    &handle,
+    &planMat,
+    &CdescMat,
+    &find,
+    worksize
+    )
+  );
+  
+  
 
 
   err = cutensorContraction(
