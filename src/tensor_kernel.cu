@@ -240,26 +240,9 @@ void cuTensorContract4(std::complex<double> *res, std::complex<double> *A,std::c
                        std::complex<double> *C, std::complex<double> *D, long int dim)
 {
   // allocate device memory and copy tensors
-  long int bTensor_size = dim*dim*dim*dim*sizeof(std::complex<double>);
-
-  cuDoubleComplex *d_A, *d_B, *d_C, *d_D, *d_AB, *d_CD, *d_Mat, *d_tr;
-  cudaMalloc((void **) &d_A, bTensor_size);
-  cudaMalloc((void **) &d_B, bTensor_size);
-  cudaMalloc((void **) &d_C, bTensor_size);
-  cudaMalloc((void **) &d_D, bTensor_size);
-  cudaMalloc((void **) &d_AB, bTensor_size);
-  cudaMalloc((void **) &d_CD, bTensor_size);
-  cudaMalloc((void **) &d_Mat, dim*dim*sizeof(std::complex<double>));
+  cuDoubleComplex *d_tr;
   cudaMalloc((void **) &d_tr, sizeof(std::complex<double>));
-
-  cudaMemcpy(d_A, A, bTensor_size, cudaMemcpyHostToDevice);
-  cudaMemcpy(d_B, B, bTensor_size, cudaMemcpyHostToDevice);
-  cudaMemcpy(d_C, C, bTensor_size, cudaMemcpyHostToDevice);
-  cudaMemcpy(d_D, D, bTensor_size, cudaMemcpyHostToDevice);
   
-  cudaMemset(d_AB, 0, bTensor_size);
-  cudaMemset(d_CD, 0, bTensor_size);
-  cudaMemset(d_Mat, 0, dim*dim*sizeof(std::complex<double>));
   cudaMemset(d_tr, 0, sizeof(std::complex<double>));
 
 
@@ -283,217 +266,48 @@ void cuTensorContract4(std::complex<double> *res, std::complex<double> *A,std::c
   std::vector<int> modeCD2{'d','c','b','e'};
   std::vector<int> modeMat{'a','e'};
 
-  int nmodeA = modeA.size();
-  int nmodeB = modeB.size();
-  int nmodeC = modeC.size();
-  int nmodeD = modeD.size();
-  int nmodeAB = modeAB.size();
-  int nmodeCD = modeCD.size();
-  int nmodeCD2 = modeCD2.size();
-  int nmodeMat = modeMat.size();
-
-  //extents of modes
-  std::unordered_map<int, int64_t> extent;
-  extent['i']=dim;
-  extent['j']=dim;
-  extent['a']=dim;
-  extent['b']=dim;
-  extent['c']=dim;
-  extent['d']=dim;
-  extent['e']=dim;
-
-  std::vector<int64_t> extentA, extentB, extentC, extentD, extentAB, extentCD, extentCD2, extentMat;
-  for(auto mode: modeA)
-    extentA.push_back(extent[mode]);
-  for(auto mode: modeB)
-    extentB.push_back(extent[mode]);
-  for(auto mode: modeC)
-    extentC.push_back(extent[mode]); 
-  for(auto mode: modeD)
-    extentD.push_back(extent[mode]); 
-  for(auto mode: modeAB)
-    extentAB.push_back(extent[mode]); 
-  for(auto mode: modeCD)
-    extentCD.push_back(extent[mode]); 
-  for(auto mode: modeCD2)
-    extentCD2.push_back(extent[mode]); 
-  for(auto mode: modeMat)
-    extentMat.push_back(extent[mode]); 
-
   //create tensor descriptors 
   cutensorHandle_t handle;
   cutensorInit(&handle);
-
-  cutensorTensorDescriptor_t descA, descB, descC, descD, descAB, descCD, descCD2, descMat;
-  HANDLE_ERROR( cutensorInitTensorDescriptor(
-      &handle,
-      &descA,
-      nmodeA,
-      extentA.data(),
-      NULL,/*stride*/
-      tensType,
-      CUTENSOR_OP_IDENTITY/*applied to each element*/
-    )
-  );
-  HANDLE_ERROR( cutensorInitTensorDescriptor(
-      &handle,
-      &descB,
-      nmodeB,
-      extentB.data(),
-      NULL,/*stride*/
-      tensType,
-      CUTENSOR_OP_IDENTITY/*applied to each element*/
-    )
-  );
-  HANDLE_ERROR( cutensorInitTensorDescriptor(
-      &handle,
-      &descC,
-      nmodeC,
-      extentC.data(),
-      NULL,/*stride*/
-      tensType,
-      CUTENSOR_OP_IDENTITY/*applied to each element*/
-    )
-  );
-  HANDLE_ERROR( cutensorInitTensorDescriptor(
-      &handle,
-      &descD,
-      nmodeD,
-      extentD.data(),
-      NULL,/*stride*/
-      tensType,
-      CUTENSOR_OP_IDENTITY/*applied to each element*/
-    )
-  );
-  HANDLE_ERROR( cutensorInitTensorDescriptor(
-      &handle,
-      &descAB,
-      nmodeAB,
-      extentAB.data(),
-      NULL,/*stride*/
-      tensType,
-      CUTENSOR_OP_IDENTITY/*applied to each element*/
-    )
-  );
-  HANDLE_ERROR( cutensorInitTensorDescriptor(
-      &handle,
-      &descCD,
-      nmodeCD,
-      extentCD.data(),
-      NULL,/*stride*/
-      tensType,
-      CUTENSOR_OP_IDENTITY/*applied to each element*/
-    )
-  );
-  HANDLE_ERROR( cutensorInitTensorDescriptor(
-      &handle,
-      &descCD2,
-      nmodeCD2,
-      extentCD2.data(),
-      NULL,/*stride*/
-      tensType,
-      CUTENSOR_OP_IDENTITY/*applied to each element*/
-    )
-  );
-  HANDLE_ERROR( cutensorInitTensorDescriptor(
-      &handle,
-      &descMat,
-      nmodeMat,
-      extentMat.data(),
-      NULL,/*stride*/
-      tensType,
-      CUTENSOR_OP_IDENTITY/*applied to each element*/
-    )
-  );
-
-  //get alignments of A,B,C
-  uint32_t alignmentA, alignmentB, alignmentC, alignmentD, alignmentAB, alignmentCD, alignmentCD2, alignmentMat;
-  HANDLE_ERROR( cutensorGetAlignmentRequirement (
-    &handle,
-    d_A,
-    &descA,
-    &alignmentA
-    )
-  );
-  HANDLE_ERROR( cutensorGetAlignmentRequirement (
-    &handle,
-    d_B,
-    &descB,
-    &alignmentB
-    )
-  );
-  HANDLE_ERROR( cutensorGetAlignmentRequirement (
-    &handle,
-    d_C,
-    &descC,
-    &alignmentC
-    )
-  );
-  HANDLE_ERROR( cutensorGetAlignmentRequirement (
-    &handle,
-    d_D,
-    &descD,
-    &alignmentD
-    )
-  );
-  HANDLE_ERROR( cutensorGetAlignmentRequirement (
-    &handle,
-    d_AB,
-    &descAB,
-    &alignmentAB
-    )
-  );
-  HANDLE_ERROR( cutensorGetAlignmentRequirement (
-    &handle,
-    d_CD,
-    &descCD,
-    &alignmentCD
-    )
-  );
-  HANDLE_ERROR( cutensorGetAlignmentRequirement (
-    &handle,
-    d_CD,
-    &descCD2,
-    &alignmentCD2
-    )
-  );
-  HANDLE_ERROR( cutensorGetAlignmentRequirement (
-    &handle,
-    d_Mat,
-    &descMat,
-    &alignmentMat
-    )
-  );
+  
+  CUTensor dA(A, handle, dim, modeA);
+  CUTensor dB(B, handle, dim, modeB);
+  CUTensor dC(C, handle, dim, modeC);
+  CUTensor dD(D, handle, dim, modeD);
+  CUTensor dAB(nullptr, handle, dim, modeAB);
+  CUTensor dCD(nullptr, handle, dim, modeCD);
+  CUTensor dCD2(nullptr, handle, dim, modeCD2);
+  CUTensor dMat(nullptr, handle, dim, modeMat);
 
   //create descriptor of contraction
   cutensorContractionDescriptor_t CdescAB, CdescCD, CdescMat;
   HANDLE_ERROR( cutensorInitContractionDescriptor( 
     &handle,
     &CdescAB,
-    &descA, modeA.data(), alignmentA,
-    &descB, modeB.data(), alignmentB,
-    &descAB, modeAB.data(), alignmentAB,
-    &descAB, modeAB.data(), alignmentAB,
+    &(dA.desc), dA.modes.data(), dA.alignment,
+    &(dB.desc), dB.modes.data(), dB.alignment,
+    &(dAB.desc), dAB.modes.data(), dAB.alignment,
+    &(dAB.desc), dAB.modes.data(), dAB.alignment,
     computeType
     )
   );
   HANDLE_ERROR( cutensorInitContractionDescriptor( 
     &handle,
     &CdescCD,
-    &descC, modeC.data(), alignmentC,
-    &descD, modeD.data(), alignmentD,
-    &descCD, modeCD.data(), alignmentCD,
-    &descCD, modeCD.data(), alignmentCD,
+    &(dC.desc), dC.modes.data(), dC.alignment,
+    &(dD.desc), dD.modes.data(), dD.alignment,
+    &(dCD.desc), dCD.modes.data(), dCD.alignment,
+    &(dCD.desc), dCD.modes.data(), dCD.alignment,
     computeType
     )
   );
   HANDLE_ERROR( cutensorInitContractionDescriptor( 
     &handle,
     &CdescMat,
-    &descAB, modeAB.data(), alignmentAB,
-    &descCD2, modeCD2.data(), alignmentCD2,
-    &descMat, modeMat.data(), alignmentMat,
-    &descMat, modeMat.data(), alignmentMat,
+    &(dAB.desc), dAB.modes.data(), dAB.alignment,
+    &(dCD2.desc), dCD2.modes.data(), dCD2.alignment,
+    &(dMat.desc), dMat.modes.data(), dMat.alignment,
+    &(dMat.desc), dMat.modes.data(), dMat.alignment,
     computeType
     )
   );
@@ -507,7 +321,9 @@ void cuTensorContract4(std::complex<double> *res, std::complex<double> *A,std::c
     CUTENSOR_ALGO_DEFAULT /*will allow internal heuristic to choose best approach*/    
     )
   );
-  
+ 
+  // Multiple workspaces????
+
   //query workspace
   size_t worksize = 0;
   HANDLE_ERROR( cutensorContractionGetWorkspace(
@@ -564,10 +380,10 @@ void cuTensorContract4(std::complex<double> *res, std::complex<double> *A,std::c
   //EXECUTE IT!
   err = cutensorContraction(
       &handle, &planAB,
-      &alpha, d_A, 
-                     d_B,
-      &beta, d_AB,
-                    d_AB,
+      &alpha, dA.data, 
+                     dB.data,
+      &beta, dAB.data,
+                    dAB.data,
       work, worksize,
       0/*stream*/
   );
@@ -578,10 +394,10 @@ void cuTensorContract4(std::complex<double> *res, std::complex<double> *A,std::c
   }
   err = cutensorContraction(
       &handle, &planCD,
-      &alpha, d_C, 
-                     d_D,
-      &beta, d_CD,
-                    d_CD,
+      &alpha, dC.data, 
+                     dD.data,
+      &beta, dCD.data,
+                    dCD.data,
       work, worksize,
       0/*stream*/
   );
@@ -590,12 +406,17 @@ void cuTensorContract4(std::complex<double> *res, std::complex<double> *A,std::c
   {
     printf("ERROR: %s\n", cutensorGetErrorString(err));
   }
+
+  
+  //TODO try swapping modes of dCD
+
+
   err = cutensorContraction(
       &handle, &planMat,
-      &alpha, d_AB, 
-                     d_CD,
-      &beta, d_Mat,
-                    d_Mat,
+      &alpha, dAB.data, 
+                     dCD.data, //dCD2 doesn't have the data
+      &beta, dMat.data,
+                    dMat.data,
       work, worksize,
       0/*stream*/
   );
@@ -608,24 +429,10 @@ void cuTensorContract4(std::complex<double> *res, std::complex<double> *A,std::c
   cutensor_contract.stop<std::chrono::microseconds>("us");
   
 
-  trace_matrix<<<1,1>>>(d_tr, d_Mat, dim);
+  trace_matrix<<<1,1>>>(d_tr, dMat.data, dim);
 
   cudaMemcpy(res, d_tr, sizeof(std::complex<double>), cudaMemcpyDeviceToHost);
 
-  if(d_A)
-    cudaFree(d_A);
-  if(d_B)
-    cudaFree(d_B);
-  if(d_C)
-    cudaFree(d_C);
-  if(d_D)
-    cudaFree(d_D);
-  if(d_AB)
-    cudaFree(d_AB);
-  if(d_CD)
-    cudaFree(d_CD);
-  if(d_Mat)
-    cudaFree(d_Mat);
   if(d_tr)
     cudaFree(d_tr);
   if(work) 
