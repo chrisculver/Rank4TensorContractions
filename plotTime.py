@@ -20,21 +20,23 @@ print(memory)
 
 fig,ax1=plt.subplots()
 
-ax1.plot(nvec, timeUS, marker='o', linestyle='None')
+pts1=ax1.plot(nvec, timeUS, marker='o', markerfacecolor="None", markeredgecolor='C0', linestyle='None', label='Time')
+
+
+ax2=ax1.twinx()
+pts2=ax2.plot(nvec, memory, marker='s', markerfacecolor="None", markeredgecolor='C1', linestyle='None', label='Memory')
+
+pts=pts1+pts2
+ptLabels=[p.get_label() for p in pts]
+ax1.legend(pts, ptLabels, loc=0)
+
 ax1.set_yscale('log')
 
 ax1.set_ylabel('$t\\,\\left[us\\right]$')
 ax1.set_xlabel('$N_{\\text{vec}}N_{s}$')
-
-
-ax2=ax1.twinx()
-ax2.plot(nvec,memory,marker='', linestyle='None')
 ax2.set_ylabel('$\\text{Memory}\\, \\left[ \\text{GB} \\right]$')
 
-
-
 plt.title('$A_{abij}B_{jicd}C_{abkl}D_{klcd}$')
-#plt.show()
-plt.savefig('contract_time.png')
-plt.savefig('contract_time.pdf')
+#plt.savefig('contract_time.pdf')
 plt.savefig('contract_time.svg')
+plt.show()
