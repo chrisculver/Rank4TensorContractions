@@ -34,5 +34,7 @@ ax2.set_ylabel('$\\text{Memory}\\, \\left[ \\text{GB} \\right]$')
 
 
 plt.title('$A_{abij}B_{jicd}C_{abkl}D_{klcd}$')
-plt.show()
+#plt.show()
+plt.savefig('contract_time.png')
 plt.savefig('contract_time.pdf')
+plt.savefig('contract_time.svg')
