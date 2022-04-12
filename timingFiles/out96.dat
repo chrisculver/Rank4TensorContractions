@@ -1,0 +1,7 @@
+TIMER: Started cuTensor contract ABCD
+TIMER: Started cutensor setup time
+TIMER: Finished cutensor setup time ELAPSED=929099 us
+TIMER: Started cutensor contract
+TIMER: Finished cutensor contract ELAPSED=2602694 us
+(-1.80365e+15,-1.61139e+11)
+TIMER: Finished cuTensor contract ABCD ELAPSED=50390604 us

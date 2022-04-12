@@ -18,12 +18,15 @@ cd full_contract_gpu(const Tensor4 &tensA, const Tensor4 &tensB);
 cd full_contract_gpu4(const Tensor4 &tensA, const Tensor4 &tensB, const Tensor4 &tensC, const Tensor4 &tensD);
 cd explicit_contract(const Tensor4 &A, const Tensor4 &B);
 cd cuTensor_contract(const Tensor4 &A, const Tensor4 &B);
+cd cuTensor_contract_any(const Tensor4 &A, const Tensor4 &B);
 cd cuTensor_contract_gpu4(const Tensor4 &tensA, const Tensor4 &tensB, const Tensor4 &tensC, const Tensor4 &tensD);
 cd explicit_contract(const Tensor4 &A, const Tensor4 &B, const Tensor4 &C, const Tensor4 &D);
 
-int main()
+int main(int argc, char **argv)
 {
-  const int N=20;
+//  const int N=20;
+
+  int N=stoi(argv[1]);
 
   Tensor4 A(N,N,N,N),B(N,N,N,N),C(N,N,N,N),D(N,N,N,N); 
   A.setRandom();
@@ -35,15 +38,16 @@ int main()
   std::vector<std::vector<int>> diagram;
   diagram = std::vector<std::vector<int>>{{0,3},{1,2},{2,1},{3,0}};
  
-  Timer<> cpu_timer("Brute for CPU contract");
-  std::cout << explicit_contract(A,B) << std::endl;
-  cpu_timer.stop<std::chrono::microseconds>("us");
-  cout << endl;
-  Timer<> ecpu_timer("Eigen CPU contract A,B");  
-  cd cpu_res = contract_two_tensors(A,B,diagram);
-  std::cout << cpu_res << std::endl;
-  ecpu_timer.stop<std::chrono::microseconds>("us");
-  
+//  Timer<> cpu_timer("Brute for CPU contract");
+//  std::cout << explicit_contract(A,B) << std::endl;
+//  cpu_timer.stop<std::chrono::microseconds>("us");
+//  cout << endl;
+//  Timer<> ecpu_timer("Eigen CPU contract A,B");  
+//  cd cpu_res = contract_two_tensors(A,B,diagram);
+//  std::cout << cpu_res << std::endl;
+//  ecpu_timer.stop<std::chrono::microseconds>("us");
+
+/*  
   cout << endl;
   Timer<> gpu_timer("GPU contract one index");
   std::cout << compute_two_tensors_gpu(A,B) << std::endl;
@@ -66,15 +70,20 @@ int main()
   std::cout << cuTensor_contract(A,B) << std::endl;
   cuTensor_timer.stop<std::chrono::microseconds>("us");
 
+  cout << endl;
+  Timer<> cuTensor_timer_any("cuTensor contract any");
+  std::cout << cuTensor_contract_any(A,B) << std::endl;
+  cuTensor_timer_any.stop<std::chrono::microseconds>("us");
+
 
   cout << endl << endl << "============Contracting 4 rank4  tensors===========" << endl;
   
-  /*
+  
   Timer<> cpu4_timer("Brute force CPU");
   cout << explicit_contract(A,B,C,D) << endl;
   cpu4_timer.stop<std::chrono::milliseconds>("ms");
   cout << endl;
-*/
+
   Timer<> ecpu4_timer("Eigen CPU contract ABCD");
   cd ecpu_res = contract_four_tensors(A,B,C,D);
   cout << ecpu_res << endl;
@@ -86,7 +95,7 @@ int main()
   cout << full_contract_gpu4(A,B,C,D) << endl;
   gpu4_timer.stop<std::chrono::milliseconds>("ms");
   cout << endl;
-
+*/
   Timer<> cuTensor4_timer("cuTensor contract ABCD");
   cout << cuTensor_contract_gpu4(A,B,C,D) << endl;
   cuTensor4_timer.stop<std::chrono::microseconds>("us");
@@ -324,6 +333,44 @@ cd cuTensor_contract(const Tensor4 &tensA, const Tensor4 &tensB)
   std::complex<double> *GPUres = (std::complex<double> *)malloc(((long int)sizeof(std::complex<double>))*(1));
 
   cuTensorContract(GPUres, A, B, dim);
+  res=GPUres[0];
+
+  free(GPUres);
+  
+  delete A;
+  delete B;
+  
+  return res;
+}
+
+
+cd cuTensor_contract_any(const Tensor4 &tensA, const Tensor4 &tensB)
+{
+  long int dim = tensA.dimensions()[0];
+  long int tdim = dim*dim*dim*dim;
+
+  cd *A = new cd[tdim];
+  cd *B = new cd[tdim];
+  cd res(0.,0.);
+
+
+  for(size_t i=0; i<dim; ++i)
+  for(size_t j=0; j<dim; ++j)
+  for(size_t k=0; k<dim; ++k)
+  for(size_t l=0; l<dim; ++l)
+  {
+    A[i*dim*dim*dim + j*dim*dim + k*dim + l] = tensA(l,k,j,i);
+    B[i*dim*dim*dim + j*dim*dim + k*dim + l] = tensB(l,k,j,i);
+  }
+
+  std::complex<double> *GPUres = (std::complex<double> *)malloc(((long int)sizeof(std::complex<double>))*(1));
+
+  //modes of tensors
+  std::vector<int> modeC{'a','b'};
+  std::vector<int> modeA{'a','j','k','l'};
+  std::vector<int> modeB{'l','k','j','b'};
+
+  cuTensorContract(GPUres, A, B, dim, modeC, modeA, modeB);
   res=GPUres[0];
 
   free(GPUres);

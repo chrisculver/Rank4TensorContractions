@@ -1,0 +1,3 @@
+TIMER: Started cuTensor contract ABCD
+TIMER: Started cutensor setup time
+Error: CUTENSOR_STATUS_INVALID_VALUE in line 106

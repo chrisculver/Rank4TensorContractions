@@ -442,3 +442,130 @@ void cuTensorContract4(std::complex<double> *res, std::complex<double> *A,std::c
   if(work) 
     cudaFree(work);
 }
+
+
+void cuTensorContract(std::complex<double> *res, std::complex<double> *A,std::complex<double> *B, long int dim, 
+                      std::vector<int> modeC, std::vector<int> modeA, std::vector<int> modeB)
+{
+  // allocate device memory and copy tensors
+  cuDoubleComplex *d_D;
+  cudaMalloc((void **) &d_D, sizeof(std::complex<double>));
+  cudaMemset(d_D, 0, sizeof(std::complex<double>));
+
+
+  //types of cuTensor
+  Timer<> cutensor_setup("cutensor setup time");
+  cudaDataType_t tensType = CUDA_C_64F;
+  cutensorComputeType_t computeType = CUTENSOR_COMPUTE_64F;
+
+  typedef float floatTypeCompute;
+
+  cuDoubleComplex alpha = make_cuDoubleComplex(1.0,0.0);
+  cuDoubleComplex beta = make_cuDoubleComplex(0.0,0.0);
+
+  //modes of tensors
+//  std::vector<int> modeC{'a','b'};
+//  std::vector<int> modeA{'a','j','k','l'};
+//  std::vector<int> modeB{'l','k','j','b'};
+
+
+  //create tensor descriptors 
+  cutensorHandle_t handle;
+  cutensorInit(&handle);
+
+  CUTensor dA(A, handle, dim, modeA);
+  CUTensor dB(B, handle, dim, modeB);
+  CUTensor dC(nullptr, handle, dim, modeC);
+  
+
+  //create descriptor of contraction
+  cutensorContractionDescriptor_t desc;
+  HANDLE_ERROR( cutensorInitContractionDescriptor( 
+    &handle,
+    &desc,
+    &(dA.desc), dA.modes.data(), dA.alignment,
+    &(dB.desc), dB.modes.data(), dB.alignment,
+    &(dC.desc), dC.modes.data(), dC.alignment,
+    &(dC.desc), dC.modes.data(), dC.alignment,
+    computeType
+    )
+  );
+
+
+  //determine algorithm
+  cutensorContractionFind_t find;
+  HANDLE_ERROR( cutensorInitContractionFind(
+    &handle, 
+    &find,
+    CUTENSOR_ALGO_DEFAULT /*will allow internal heuristic to choose best approach*/    
+    )
+  );
+  
+  //query workspace
+  size_t worksize = 0;
+  HANDLE_ERROR( cutensorContractionGetWorkspace(
+    &handle,
+    &desc,
+    &find,
+    CUTENSOR_WORKSPACE_RECOMMENDED,
+    &worksize
+    )
+  );
+
+  //allocate workspace
+  void *work = nullptr;
+  if(worksize > 0)
+  {
+    if( cudaSuccess != cudaMalloc(&work, worksize) )
+    {
+      work = nullptr;
+      worksize=0;
+    }
+  }
+
+  //create contraction plan
+  cutensorContractionPlan_t plan;
+  HANDLE_ERROR( cutensorInitContractionPlan(
+    &handle,
+    &plan,
+    &desc,
+    &find,
+    worksize
+    )
+  );
+
+  cutensor_setup.stop<std::chrono::microseconds>("us");
+  
+  
+  cutensorStatus_t err;
+  
+  Timer<> cutensor_contract("cutensor contract");
+  //EXECUTE IT!
+  err = cutensorContraction(
+      &handle, &plan,
+      &alpha, dA.data, 
+                     dB.data,
+      &beta, dC.data,
+                    dC.data,
+      work, worksize,
+      0/*stream*/
+  );
+
+  cudaDeviceSynchronize();
+
+  cutensor_contract.stop<std::chrono::microseconds>("us");
+  
+  if(err != CUTENSOR_STATUS_SUCCESS)
+  {
+    printf("ERROR: %s\n", cutensorGetErrorString(err));
+  }
+
+  trace_matrix<<<1,1>>>(d_D, dC.data, dim);
+
+  cudaMemcpy(res, d_D, sizeof(std::complex<double>), cudaMemcpyDeviceToHost);
+
+  if(d_D)
+    cudaFree(d_D);
+  if(work) 
+    cudaFree(work);
+}
